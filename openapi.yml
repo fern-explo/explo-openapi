@@ -1,0 +1,251 @@
+openapi: 3.0.1
+info:
+  title: api
+  version: ''
+paths:
+  /api/create_customer:
+    post:
+      description: |
+        This endpoint gets or creates a new customer. If the customer_id does
+        not exist, a new customer will be created and information about the
+        group will be sent back. If the customer_id exists, no action will be
+        taken but the same information about the group will be sent back. There
+        will be a flag in the response indicating if a new customer was created.
+      operationId: customer_get_or_create
+      tags:
+        - Customer
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetOrCreateCustomerResponse'
+      security: &ref_0
+        - TokenAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetCustomerRequest'
+  /api/update_customer:
+    post:
+      description: |
+        This endpoint updates an existing customer. Currently, the only fields
+        you can update is the name and data_source field.
+      operationId: customer_update
+      tags:
+        - Customer
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UpdateCustomerResponse'
+      security: *ref_0
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SetCustomerRequest'
+  /api/delete_customer:
+    delete:
+      description: This endpoint deletes an existing Customer.
+      operationId: customer_delete
+      tags:
+        - Customer
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeleteCustomerResponse'
+      security: *ref_0
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                current_token:
+                  type: string
+                  description: >-
+                    This is the current Customer token you have for the Customer
+                    you want to delete
+              required:
+                - current_token
+  /api/refresh_customer_token:
+    post:
+      description: |
+        This endpoint refreshes a customer token. This is useful when you want
+        to force a customer token to rotate because an existing one may be
+        compromised.
+      operationId: customer_refresh_token
+      tags:
+        - Customer
+      parameters: []
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshCustomerTokenResponse'
+      security: *ref_0
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                current_token:
+                  type: string
+                  description: >-
+                    This is the current customer token you have for the customer
+                    that you want to rotate.
+              required:
+                - current_token
+components:
+  schemas:
+    BaseResponse:
+      type: object
+      properties:
+        success:
+          type: integer
+          description: >-
+            Indicates whether the call was successful. 1 if successful, 0 if
+            not.
+      required:
+        - success
+    SetCustomerRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: This is the name of the customer.
+        customer_id:
+          type: string
+          description: This is the ID you use to identify this customer in your database.
+        mapping:
+          type: object
+          additionalProperties:
+            type: string
+          description: |
+            This is a JSON mapping of schema id to either the data source
+            that this user group should be associated with or id of the
+            datasource you provided when creating it.
+        is_demo_group:
+          type: boolean
+          description: |
+            Set this boolean parameter to true to make data panels include a
+            demo watermark for the customer. Demo customers do not count
+            towards paid user groups. Default value is false.
+        properties:
+          description: |
+            This is a JSON object for properties assigned to this customer.
+            These will be accessible through variables in the dashboards and
+            SQL editor
+        emails:
+          type: array
+          items:
+            type: string
+          description: This is an array of email addresses to add to the customer.
+      required:
+        - name
+        - customer_id
+        - mapping
+        - is_demo_group
+        - properties
+        - emails
+    GetOrCreateCustomerResponse:
+      type: object
+      properties:
+        new_customer:
+          type: boolean
+          description: Indicates whether a new customer was created.
+        customer:
+          $ref: '#/components/schemas/Customer'
+          description: The contents of the customer
+      required:
+        - new_customer
+        - customer
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+    Customer:
+      type: object
+      properties:
+        team_id:
+          type: integer
+          description: |
+            This is Explo's internal ID for this customer. You don't need to
+            record this information, since you will not need to use it.
+        token:
+          type: string
+          description: >
+            This is the customer token (customerToken or CUSTOMER_TOKEN) that
+            will
+
+            be used to identify which customer is viewing the dashboard. You
+
+            should save this on your end to use when rendering an embedded
+
+            dashboard.
+        name:
+          type: string
+          description: This is the name of the customer provided in the request body.
+        provided_id:
+          type: string
+          description: This is the customer_id provided in the request body.
+        is_demo_group:
+          type: boolean
+          description: >-
+            If set to true, data panels displayed for the customer will include
+            a demo watermark.
+        properties:
+          description: This is the properties object if it was provided in the request body
+      required:
+        - team_id
+        - token
+        - name
+        - provided_id
+        - is_demo_group
+        - properties
+    UpdateCustomerResponse:
+      type: object
+      properties:
+        customer:
+          $ref: '#/components/schemas/Customer'
+          description: The contents of the customer
+      required:
+        - customer
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+    DeleteCustomerResponse:
+      type: object
+      properties: {}
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+    RefreshCustomerTokenResponse:
+      type: object
+      properties:
+        customer:
+          $ref: '#/components/schemas/Customer'
+          description: The contents of the customer
+      required:
+        - customer
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+  securitySchemes:
+    TokenAuth:
+      type: apiKey
+      in: header
+      name: Explo-Authorization
