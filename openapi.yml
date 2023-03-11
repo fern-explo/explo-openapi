@@ -249,3 +249,6 @@ components:
       type: apiKey
       in: header
       name: Explo-Authorization
+servers:
+  - url: https://api.explo.co
+    description: Production
